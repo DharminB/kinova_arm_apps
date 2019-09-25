@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>kinova_arm_apps</name>
+  <version>0.0.0</version>
+  <description>A ros package to use kinova arm</description>
+
+  <maintainer email="dharmingeo@gmail.com">Dharmin B.</maintainer>
+
+  <license>GPLv3</license>
+
+  <author email="dharmingeo@gmail.com">Dharmin B.</author>
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <exec_depend>rospy</exec_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>
