@@ -16,6 +16,15 @@
 #include <Eigen/Eigenvalues>
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/String.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/ModelCoefficients.h>
+#include <pcl/filters/project_inliers.h>
+#include <pcl/surface/convex_hull.h>
+#include <pcl/segmentation/extract_polygonal_prism_data.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/segmentation/extract_clusters.h>
 
 ros::Publisher cloud_pub;
 ros::Publisher pose_pub;
@@ -111,17 +120,6 @@ void cloud_cb (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& input)
     ec.setIndices (segmented_cloud_inliers);
     ec.extract (clusters_indices);
 
-    /* //Find clusters of the inlier points */
-    // pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
-    // std::vector<pcl::PointIndices> clusters_indices;
-    // pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    // ec.setClusterTolerance (0.02); // 2cm
-    // ec.setMinClusterSize (400);
-    // ec.setMaxClusterSize (25000);
-    // ec.setSearchMethod (tree);
-    // ec.setInputCloud (cloud_pass_through2);
-    // ec.extract (clusters_indices);
-
     float closest_dist = 100.0;
     Eigen::Vector4f closest_centroid(0.0, 0.0, 0.0, 0.0);
     Eigen::Vector4f zero_point(0.0, 0.0, 0.0, 0.0);
@@ -147,11 +145,14 @@ void cloud_cb (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& input)
     pose_stamped.header.frame_id = input->header.frame_id;
     pose_stamped.header.stamp = ros::Time::now();
     pose_pub.publish(pose_stamped);
+    ROS_INFO_STREAM("Published a pose");
+    ROS_INFO_STREAM("stopping listening");
+    listening = false;
 
     if (publish_output_pc)
     {
         sensor_msgs::PointCloud2 output;
-        pcl::toROSMsg(*cloud_pass_through2, output);
+        pcl::toROSMsg(*cloud_downsampled, output);
         output.header.frame_id = output_pc_frame;
         output.header.stamp = ros::Time::now();
 
@@ -170,14 +171,14 @@ void event_in_cb (const std_msgs::String::ConstPtr& msg)
         event_out_msg.data = "e_started";
         event_out_pub.publish (event_out_msg);
     }
-    if (msg->data == "e_stop")
-    {
-        ROS_INFO_STREAM("stopping listening");
-        listening = false;
-        std_msgs::String event_out_msg;
-        event_out_msg.data = "e_stopped";
-        event_out_pub.publish (event_out_msg);
-    }
+    /* if (msg->data == "e_stop") */
+    /* { */
+    /*     ROS_INFO_STREAM("stopping listening"); */
+    /*     listening = false; */
+    /*     std_msgs::String event_out_msg; */
+    /*     event_out_msg.data = "e_stopped"; */
+    /*     event_out_pub.publish (event_out_msg); */
+    /* } */
 }
 
 int main (int argc, char** argv)

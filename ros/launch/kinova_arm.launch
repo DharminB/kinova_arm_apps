@@ -1,19 +1,21 @@
 <?xml version="1.0"?>
 <launch>
-  <include file="$(find kinova_vision)/launch/kinova_vision_rgbd.launch">
-    <arg name="device" default="192.168.25.101" doc="Device IPv4 address" />
-  </include>
     <arg name="arm" default="gen3"/> <!-- gen3 is the only supported arm for now -->
     <arg name="gripper" default="robotiq_2f_85"/> <!-- "robotiq_2f_85" is the only supported gripper for now, as well as no gripper ("") -->
     <arg name="robot_name" default="my_$(arg arm)"/>
 
   <include file="$(find kortex_driver)/launch/kortex_driver.launch">
     <!-- Kortex API options -->
-    <arg name="ip_address" default="192.168.25.101"/>
-    <arg name="start_rviz" default="false"/>
-    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find kortex_description)/robots/$(arg arm)_$(arg gripper).xacro sim:=false"
-            unless="$(eval not arg('gripper'))"/>
+    <arg name="ip_address" value="192.168.1.10"/>
+    <arg name="start_rviz" value="true"/>
+    <arg name="start_moveit" value="false"/>
   </include>
+
+  <!-- Static transformations -->
+  <node pkg="tf2_ros"
+      type="static_transform_publisher"
+      name="camera_link_tf_publisher"
+      args="0.0 0.05639 -0.00305  3.1419 0 0 end_effector_link camera_link" />
 
 
 </launch>
