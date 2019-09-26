@@ -23,23 +23,9 @@ class PickAndPlace(object):
         # Subscribers
         self.perception_pose_sub = rospy.Subscriber('~pose_in', PoseStamped, self.perception_pose_cb)
         self.event_in_sub = rospy.Subscriber('~event_in', String, self.event_in_cb)
-
-        self.setup_arm_for_pick()
-
-    def perception_pose_cb(self, msg):
-        self.perception_pose = msg
-
-    def event_in_cb(self, msg):
-        if msg.data == 'e_start':
-            pass
-        if msg.data == 'e_stop':
-            pass
-        # Publishers
         self.debug_pose_pub = rospy.Publisher('~debug_pose', PoseStamped, queue_size=1)
 
-        self.perception_pose = None
         self.setup_arm_for_pick()
-        rospy.loginfo("Ready")
 
     def perception_pose_cb(self, msg):
         x_min, x_max = -0.7, -0.4
