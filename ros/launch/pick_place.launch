@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="arm" default="gen3"/> <!-- gen3 is the only supported arm for now -->
+    <arg name="gripper" default="robotiq_2f_85"/> <!-- "robotiq_2f_85" is the only supported gripper for now, as well as no gripper ("") -->
+    <arg name="robot_name" default="my_$(arg arm)"/>
+    <node pkg="kinova_arm_apps" type="pick_and_place.py" name="pick_and_place" output="screen">
+	<rosparam command="load" file="$(find kinova_arm_apps)/ros/config/joint_angles.yaml"/>
+    </node>
+</launch>
+

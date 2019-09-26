@@ -12,13 +12,13 @@ class PickAndPlace(object):
 
     """pick and place code using full arm movement and 3d segmentation perception"""
 
-    vertical_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    intermediate_pick_pose = [179.0, 17.0, 182.0, 231.0, 0.0, 56.0, 92.0]
-    look_at_ground_pose = [179.0, 34.0, 182.0, 280.0, 0.0, 295.0, 92.0]
-    intermediate_place_pose = [257.0, 11.0, 182.0, 241.0, 0.0, 310.0, 85.0]
-    place_pose = [257.0, 31.0, 182.0, 229.0, 0.0, 342.0, 85.0]
     def __init__(self):
         self.fam = FullArmMovement()
+        default_boundary_safety = {"x_min": -0.1, "x_max": 0.1, "y_min": -0.45,\
+        		           "y_max": -0.25, "z_min": 0.0, "z_max": 0.1}
+	self.boundary_safety = rospy.get_param("~boundary_safety ", default_boundary_safety )
+	self.joint_angles = rospy.get_param("~joint_angles", {})
+	print (self.boundary_safety)
 
         # Subscribers
         self.perception_pose_sub = rospy.Subscriber('~pose_in', PoseStamped, self.perception_pose_cb)
@@ -26,15 +26,13 @@ class PickAndPlace(object):
         self.debug_pose_pub = rospy.Publisher('~debug_pose', PoseStamped, queue_size=1)
 
         self.setup_arm_for_pick()
+	rospy.loginfo("READY!")
 
     def perception_pose_cb(self, msg):
-        x_min, x_max = -0.7, -0.4
-        y_min, y_max = -0.2, 0.2
-        z_min, z_max = 0.0, 0.1
         rospy.loginfo(msg.pose.position)
-        if x_min < msg.pose.position.x < x_max and \
-                y_min < msg.pose.position.y < y_max and \
-                z_min < msg.pose.position.z < z_max:
+        if self.boundary_safety["x_min"] < msg.pose.position.x < self.boundary_safety["x_max"] and \
+                self.boundary_safety["y_min"] < msg.pose.position.y < self.boundary_safety["y_max"] and \
+                self.boundary_safety["z_min"] < msg.pose.position.z < self.boundary_safety["z_max"]:
             self.perception_pose = msg
         else:
             rospy.logerr("Input pose out of bound")
@@ -56,12 +54,12 @@ class PickAndPlace(object):
             self.debug_pose_pub.publish(debug_pose)
             self.fam.send_cartesian_pose(debug_pose)
             self.fam.close_gripper()
-            self.fam.test_send_joint_angles(self.look_at_ground_pose)
-            self.fam.test_send_joint_angles(self.intermediate_place_pose)
-            self.fam.test_send_joint_angles(self.place_pose)
+            self.fam.test_send_joint_angles(self.joint_angles["look_at_ground_pose"])
+            self.fam.test_send_joint_angles(self.joint_angles["intermediate_place_pose"])
+            self.fam.test_send_joint_angles(self.joint_angles["place_pose"])
             self.fam.open_gripper()
-            self.fam.test_send_joint_angles(self.intermediate_place_pose)
-            self.fam.test_send_joint_angles(self.look_at_ground_pose)
+            self.fam.test_send_joint_angles(self.joint_angles["intermediate_place_pose"])
+            self.fam.test_send_joint_angles(self.joint_angles["look_at_ground_pose"])
         if msg.data == 'e_stop':
             self.perception_pose = None
 
@@ -71,11 +69,9 @@ class PickAndPlace(object):
 
         """
         self.fam.example_clear_faults()
-        # self.fam.test_send_joint_angles(self.vertical_pose)
-        # self.fam.test_send_joint_angles(self.intermediate_pick_pose)
-        self.fam.test_send_joint_angles(self.look_at_ground_pose)
+        # self.fam.test_send_joint_angles(self.joint_angles["vertical_pose"])
+        self.fam.test_send_joint_angles(self.joint_angles["look_at_ground_pose"])
         self.fam.open_gripper()
-        # self.fam.close_gripper()
 
 if __name__ == "__main__":
     rospy.init_node('pick_and_place')
