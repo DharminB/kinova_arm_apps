@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import tf
+import sys
 import rospy
 import copy
 import math
@@ -16,10 +17,11 @@ class PickAndPlace(object):
 
     def __init__(self):
         self.fam = FullArmMovement()
-        default_boundary_safety = {"x_min": -0.1, "x_max": 0.1, "y_min": -0.45,\
-        		           "y_max": -0.25, "z_min": 0.0, "z_max": 0.1}
-	self.boundary_safety = rospy.get_param("~boundary_safety ", default_boundary_safety )
-	self.joint_angles = rospy.get_param("~joint_angles", {})
+	self.boundary_safety = rospy.get_param("~boundary_safety", None)
+	self.joint_angles = rospy.get_param("~joint_angles", None)
+        if self.boundary_safety is None or self.joint_angles is None:
+            rospy.logerr("Joint angles or boundary_safety not defined.")
+            sys.exit(1)
         self.perception_pose = None
         self.listener = tf.TransformListener()
 
@@ -39,6 +41,10 @@ class PickAndPlace(object):
     def perception_pose_cb(self, msg):
         msg = self.get_transformed_pose(msg, 'base_link')
         rospy.loginfo(msg.pose.position)
+        print(self.boundary_safety)
+        print(self.boundary_safety["x_min"] < msg.pose.position.x < self.boundary_safety["x_max"])
+        print(self.boundary_safety["y_min"] < msg.pose.position.y < self.boundary_safety["y_max"])
+        print(self.boundary_safety["z_min"] < msg.pose.position.z < self.boundary_safety["z_max"])
         if self.boundary_safety["x_min"] < msg.pose.position.x < self.boundary_safety["x_max"] and \
                 self.boundary_safety["y_min"] < msg.pose.position.y < self.boundary_safety["y_max"] and \
                 self.boundary_safety["z_min"] < msg.pose.position.z < self.boundary_safety["z_max"]:
@@ -63,12 +69,13 @@ class PickAndPlace(object):
             self.debug_pose_pub.publish(debug_pose)
             self.fam.send_cartesian_pose(debug_pose)
             self.fam.close_gripper()
-            self.fam.test_send_joint_angles(self.joint_angles["look_at_ground_pose"])
+            self.fam.test_send_joint_angles(self.joint_angles["perceive_pose"])
             self.fam.test_send_joint_angles(self.joint_angles["intermediate_place_pose"])
             self.fam.test_send_joint_angles(self.joint_angles["place_pose"])
             self.fam.open_gripper()
             self.fam.test_send_joint_angles(self.joint_angles["intermediate_place_pose"])
-            self.fam.test_send_joint_angles(self.joint_angles["look_at_ground_pose"])
+            self.fam.test_send_joint_angles(self.joint_angles["perceive_pose"])
+            self.perception_pose = None
         if msg.data == 'e_stop':
             self.perception_pose = None
 
@@ -79,7 +86,7 @@ class PickAndPlace(object):
         """
         self.fam.example_clear_faults()
         # self.fam.test_send_joint_angles(self.joint_angles["vertical_pose"])
-        self.fam.test_send_joint_angles(self.joint_angles["look_at_ground_pose"])
+        self.fam.test_send_joint_angles(self.joint_angles["perceive_pose"])
         self.fam.open_gripper()
 
     def get_transformed_pose(self, reference_pose, target_frame):

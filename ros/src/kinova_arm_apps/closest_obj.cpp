@@ -26,6 +26,11 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/segmentation/extract_clusters.h>
 
+#include <pcl/common/centroid.h>
+#include <pcl/common/common.h>
+#include <pcl/common/transforms.h>
+#include <Eigen/Eigenvalues>
+
 ros::Publisher cloud_pub;
 ros::Publisher pose_pub;
 ros::Publisher event_out_pub;
@@ -34,6 +39,50 @@ bool listening;
 std::string output_pc_frame;
 float z_threshold;
 float x_threshold;
+
+geometry_msgs::PoseStamped estimatePose(pcl::PointCloud<pcl::PointXYZ>::Ptr xyz_input_cloud)
+{
+    Eigen::Vector4f centroid;
+    pcl::compute3DCentroid(*xyz_input_cloud, centroid);
+
+    Eigen::Matrix3f covariance;
+    pcl::computeCovarianceMatrixNormalized(*xyz_input_cloud, centroid, covariance);
+
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
+    Eigen::Matrix3f eigen_vectors = eigen_solver.eigenvectors();
+
+    // swap largest and second largest eigenvector so that y-axis aligns with largest eigenvector and z with the second largest
+    eigen_vectors.col(0).swap(eigen_vectors.col(2));
+    eigen_vectors.col(1) = eigen_vectors.col(2).cross(eigen_vectors.col(0));
+
+    Eigen::Matrix4f eigen_vector_transform(Eigen::Matrix4f::Identity());
+    eigen_vector_transform.block<3, 3>(0, 0) = eigen_vectors.transpose();
+    eigen_vector_transform.block<3, 1>(0, 3) = -(eigen_vector_transform.block<3, 3>(0, 0) * centroid.head<3>());
+
+    // transform cloud to eigenvector space
+    pcl::PointCloud<pcl::PointXYZ> transformed_cloud;
+    pcl::transformPointCloud(*xyz_input_cloud, transformed_cloud, eigen_vector_transform);
+
+    // find mean diagonal
+    pcl::PointXYZ min_point, max_point;
+    pcl::getMinMax3D(transformed_cloud, min_point, max_point);
+    Eigen::Vector3f mean_diag = (max_point.getVector3fMap() + min_point.getVector3fMap()) / 2.0;
+
+    // orientation and position of bounding box of cloud
+    Eigen::Quaternionf orientation(eigen_vectors);
+    Eigen::Vector3f position = eigen_vectors * mean_diag + centroid.head<3>();
+
+    geometry_msgs::PoseStamped pose_stamped;
+    pose_stamped.pose.position.x = position(0);
+    pose_stamped.pose.position.y = position(1);
+    pose_stamped.pose.position.z = position(2);
+    pose_stamped.pose.orientation.w = orientation.w();
+    pose_stamped.pose.orientation.x = orientation.x();
+    pose_stamped.pose.orientation.y = orientation.y();
+    pose_stamped.pose.orientation.z = orientation.z();
+
+    return pose_stamped;
+}
 
 void cloud_cb (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& input)
 {
@@ -122,6 +171,7 @@ void cloud_cb (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& input)
 
     float closest_dist = 100.0;
     Eigen::Vector4f closest_centroid(0.0, 0.0, 0.0, 0.0);
+    int closest_cluster_index = 0;
     Eigen::Vector4f zero_point(0.0, 0.0, 0.0, 0.0);
     for (size_t i = 0; i < clusters_indices.size(); i++)
     {
@@ -133,12 +183,19 @@ void cloud_cb (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& input)
         {
             closest_dist = dist;
             closest_centroid = centroid;
+            closest_cluster_index = i;
         }
     }
     /* std::cout << closest_dist << std::endl; */
     /* std::cout << closest_centroid << std::endl; */
 
     geometry_msgs::PoseStamped pose_stamped;
+    if (clusters_indices.size() > 0)
+    {
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cluster_winner(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::copyPointCloud(*cloud_downsampled, clusters_indices[closest_cluster_index], *cluster_winner);
+        pose_stamped = estimatePose(cluster_winner);
+    }
     pose_stamped.pose.position.x = closest_centroid[0];
     pose_stamped.pose.position.y = closest_centroid[1];
     pose_stamped.pose.position.z = closest_centroid[2];

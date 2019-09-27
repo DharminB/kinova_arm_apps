@@ -4,6 +4,7 @@
 
     <node pkg="kinova_arm_apps" type="pick_and_place.py" name="pick_and_place" output="screen">
         <rosparam command="load" file="$(find kinova_arm_apps)/ros/config/joint_angles.yaml"/>
+        <rosparam command="load" file="$(find kinova_arm_apps)/ros/config/boundary_safety.yaml"/>
         <remap from="~pose_in" to="$(arg pose_input)" />
     </node>
 </launch>
