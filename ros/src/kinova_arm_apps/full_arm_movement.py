@@ -121,17 +121,7 @@ class FullArmMovement:
         if pose is None:
             pose = self.get_pose_from_current_ee_pose()
 
-        # feedback = rospy.wait_for_message("/" + self.robot_name + "/base_feedback", BaseCyclic_Feedback)
-        # print(feedback.base)
-        print(self.current_ee_pose)
-
         req = PlayCartesianTrajectoryRequest()
-        # req.input.target_pose.x = feedback.base.commanded_tool_pose_x
-        # req.input.target_pose.y = feedback.base.commanded_tool_pose_y
-        # req.input.target_pose.z = feedback.base.commanded_tool_pose_z + 0.15
-        # req.input.target_pose.theta_x = feedback.base.commanded_tool_pose_theta_x
-        # req.input.target_pose.theta_y = feedback.base.commanded_tool_pose_theta_y
-        # req.input.target_pose.theta_z = feedback.base.commanded_tool_pose_theta_z
 
         req.input.target_pose.x = pose.pose.position.x
         req.input.target_pose.y = pose.pose.position.y
@@ -146,11 +136,11 @@ class FullArmMovement:
 
         pose_speed = CartesianSpeed()
         pose_speed.translation = 0.05
-        pose_speed.orientation = 15
+        pose_speed.orientation = 15.0
 
         # The constraint is a one_of in Protobuf. The one_of concept does not exist in ROS
         # To specify a one_of, create it and put it in the appropriate list of the oneof_type member of the ROS object : 
-        req.input.constraint.oneof_type.speed.append(pose_speed)
+        # req.input.constraint.oneof_type.speed.append(pose_speed)
 
         # Call the service
         rospy.loginfo("Sending the robot to the cartesian pose...")

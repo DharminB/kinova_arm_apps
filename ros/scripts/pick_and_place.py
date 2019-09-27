@@ -66,12 +66,19 @@ class PickAndPlace(object):
             print(self.fam.current_ee_pose)
             debug_pose = copy.deepcopy(self.perception_pose)
             debug_pose.pose.position.z = self.fam.current_ee_pose[2] - 0.03
-            debug_pose.pose.orientation = FullArmMovement.quat_from_rpy(*map(math.radians, self.fam.current_ee_pose[3:]))
+            theta_x, theta_y, theta_z = tf.transformations.euler_from_quaternion((
+                    debug_pose.pose.orientation.x, debug_pose.pose.orientation.y,
+                    debug_pose.pose.orientation.z, debug_pose.pose.orientation.w))
+            # debug_pose.pose.orientation = FullArmMovement.quat_from_rpy(*map(math.radians, self.fam.current_ee_pose[3:]))
+            debug_pose.pose.orientation = FullArmMovement.quat_from_rpy(
+                    math.radians(self.fam.current_ee_pose[3]),
+                    math.radians(self.fam.current_ee_pose[4]),
+                    theta_z)
             # debug_pose = self.fam.get_pose_from_current_ee_pose()
             # debug_pose.header.frame_id = 'base_link'
-            # print(debug_pose)
+            print(debug_pose)
             self.debug_pose_pub.publish(debug_pose)
-            self.fam.send_cartesian_pose(debug_pose)
+            # self.fam.send_cartesian_pose(debug_pose)
             debug_pose.pose.position.z = self.perception_pose.pose.position.z + 0.01
             self.debug_pose_pub.publish(debug_pose)
             self.fam.send_cartesian_pose(debug_pose)
@@ -92,7 +99,7 @@ class PickAndPlace(object):
 
         """
         self.fam.example_clear_faults()
-        self.fam.test_send_joint_angles(self.joint_angles["vertical_pose"])
+        # self.fam.test_send_joint_angles(self.joint_angles["vertical_pose"])
         self.fam.test_send_joint_angles(self.joint_angles["perceive_pose"])
         self.fam.open_gripper()
 

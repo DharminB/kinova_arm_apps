@@ -54,6 +54,8 @@ geometry_msgs::PoseStamped estimatePose(pcl::PointCloud<pcl::PointXYZ>::Ptr xyz_
     // swap largest and second largest eigenvector so that y-axis aligns with largest eigenvector and z with the second largest
     eigen_vectors.col(0).swap(eigen_vectors.col(2));
     eigen_vectors.col(1) = eigen_vectors.col(2).cross(eigen_vectors.col(0));
+    eigen_vectors.col(0).swap(eigen_vectors.col(1));
+    eigen_vectors.col(2) = eigen_vectors.col(0).cross(eigen_vectors.col(1));
 
     Eigen::Matrix4f eigen_vector_transform(Eigen::Matrix4f::Identity());
     eigen_vector_transform.block<3, 3>(0, 0) = eigen_vectors.transpose();

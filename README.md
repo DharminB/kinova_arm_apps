@@ -2,6 +2,12 @@
 
 # Instructions
 
+## Dependencies
+
+```
+sudo apt install ros-kinetic-timed-roslaunch
+```
+
 ## For simulation
 ```
 roslaunch kortex_gazebo spawn_kortex_robot.launch

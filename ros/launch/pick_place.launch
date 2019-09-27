@@ -2,9 +2,9 @@
 <launch>
     <arg name="pose_input" default="/pcl_closest_obj/output_pose"/>
     
-    <include file="$(find kortex_driver)/launch/kortex_driver.launch"/>
+    <!-- <include file="$(find kortex_driver)/launch/kortex_driver.launch"/> -->
 
-    <node pkg="timed_roslaunch" type="timed_roslaunch.sh" args="5 kinova_vision kinova_vision_rgbd.launch" name="timed_roslaunch" output="screen" />
+    <!-- <node pkg="timed_roslaunch" type="timed_roslaunch.sh" args="5 kinova_vision kinova_vision_rgbd.launch" name="timed_roslaunch" output="screen" /> -->
 
     <node pkg="kinova_arm_apps" type="pick_and_place.py" name="pick_and_place" output="screen">
         <rosparam command="load" file="$(find kinova_arm_apps)/ros/config/joint_angles.yaml"/>

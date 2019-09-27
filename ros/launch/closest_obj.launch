@@ -3,9 +3,9 @@
 
     <arg name="input_pointcloud_topic" default="/camera/depth_registered/points" />
 
-  <include file="$(find kinova_vision)/launch/kinova_vision_rgbd.launch">
-    <arg name="device" default="192.168.1.10" doc="Device IPv4 address" />
-  </include>
+  <!-- <include file="$(find kinova_vision)/launch/kinova_vision_rgbd.launch"> -->
+  <!--   <arg name="device" default="192.168.1.10" doc="Device IPv4 address" /> -->
+  <!-- </include> -->
     <node pkg="kinova_arm_apps" type="closest_obj" name="pcl_closest_obj" output="screen">
         <remap from="~input" to="$(arg input_pointcloud_topic)" />  
         <param name="publish_output_pc" value="true" type="bool" />
