@@ -9,7 +9,6 @@ import math
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
 from kinova_arm_apps.full_arm_movement import FullArmMovement
-import mcr_manipulation_measurers_ros.pose_transformer
 
 class PickAndPlace(object):
 
@@ -53,6 +52,14 @@ class PickAndPlace(object):
             rospy.logerr("Input pose out of bound")
 
     def event_in_cb(self, msg):
+        if msg.data == 'e_demo':
+	    self.fam.test_send_joint_angles(self.joint_angles["perceive_pose"])
+	    self.fam.test_send_joint_angles(self.joint_angles["demo_pose"])
+	    rospy.sleep(2)
+
+        if msg.data == 'e_perceive':
+	    self.fam.test_send_joint_angles(self.joint_angles["perceive_pose"])
+	
         if msg.data == 'e_start':
             if self.perception_pose is None:
                 return
@@ -85,7 +92,7 @@ class PickAndPlace(object):
 
         """
         self.fam.example_clear_faults()
-        # self.fam.test_send_joint_angles(self.joint_angles["vertical_pose"])
+        self.fam.test_send_joint_angles(self.joint_angles["vertical_pose"])
         self.fam.test_send_joint_angles(self.joint_angles["perceive_pose"])
         self.fam.open_gripper()
 

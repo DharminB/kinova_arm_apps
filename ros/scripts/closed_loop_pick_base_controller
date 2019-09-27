@@ -1,0 +1,104 @@
+#! /usr/bin/env python
+
+from __future__ import print_function
+
+import rospy
+from geometry_msgs.msg import PoseStamped, Twist, Quaternion
+from std_msgs.msg import String
+import mcr_manipulation_measurers_ros.pose_transformer
+import tf
+import math
+from kortex_driver.srv import *
+from kortex_driver.msg import *
+
+class ClosedLoopPickBaseController(object):
+    """ Convert from cluster (from segmentation node) to images for varied purposes.
+    """
+    
+    def __init__(self):
+        self._obj_pose_sub = rospy.Subscriber('~input_pose', PoseStamped, self.obj_pose_cb)
+        self._event_in_sub = rospy.Subscriber('~event_in', String, self.event_in_cb)
+        self._cmd_vel_pub = rospy.Publisher('~cmd_vel', Twist, queue_size=1)
+        self._event_out_pub = rospy.Publisher('~event_out', String, queue_size=1)
+        self._closest_obj_event_in_pub = rospy.Publisher('~closest_obj_event_in', String, queue_size=1)
+        # self._debug_pose_pub = rospy.Publisher('~debug_pose', PoseStamped, queue_size=1)
+        self._camera_link = rospy.get_param('~camera_link')
+        self.pose_transformer = mcr_manipulation_measurers_ros.pose_transformer.PoseTransformer()
+        self._target_frame = 'base_link'
+        self._target_pose = None
+        self._moving = False
+        self._should_listen = True
+
+        # controller parameters
+        self._stopping_threshold = 0.1
+        self.p_x = 0.2
+        self.p_y = -1.0
+        self.c_x = 0.02
+        self.c_y = 50.0
+        self.max_vel = 0.1
+        self.min_vel = -0.1
+
+    def obj_pose_cb(self, msg):
+        obj_position = msg.pose.position
+        if obj_position.x == obj_position.y == obj_position.z == 0.0:
+            self._should_listen = False
+        elif self._should_listen:
+            self._target_pose = self.pose_transformer.get_transformed_pose(msg, self._target_frame)
+        # rospy.loginfo(self._target_pose)
+        # if self._target_pose is not None:
+        #     self._debug_pose_pub.publish(self._target_pose)
+        if self._moving and self._target_pose is not None:
+            transformed_pose = self.pose_transformer.get_transformed_pose(self._target_pose, self._camera_link)
+            dist_z = transformed_pose.pose.position.z
+            dist_y = transformed_pose.pose.position.y
+            if dist_z < self._stopping_threshold:
+                self._moving = False
+                self._publish_zero_vel()
+                self._event_out_pub.publish(String(data='e_done'))
+                self._closest_obj_event_in_pub.publish(String(data='e_stop'))
+                return
+            vel_x = ((dist_z * self.p_x) + self.c_x) / (1.0 + (abs(dist_y) * self.c_y))
+            vel_y = dist_y * self.p_y
+            vel_x = max(self.min_vel, min(vel_x, self.max_vel))
+            vel_y = max(self.min_vel, min(vel_y, self.max_vel))
+            # print(vel_x, vel_y)
+            self._cmd_vel_pub.publish(self._get_twist(x=vel_x, y=vel_y))
+        else:
+            self._publish_zero_vel()
+
+    def event_in_cb(self, msg):
+        if msg.data == "e_start":
+            self._moving = True
+            self._should_listen = True
+            self._closest_obj_event_in_pub.publish(String(data='e_start'))
+        elif msg.data == "e_stop":
+            self._moving = False
+            self._closest_obj_event_in_pub.publish(String(data='e_stop'))
+            self._publish_zero_vel() # for safety
+
+    def _get_twist(self, x=0.0, y=0.0, theta=0.0):
+        """Return twist ros message object.
+
+        :x: float
+        :y: float
+        :theta: float
+        :returns: geometry_msgs.msg.Twist
+
+        """
+        msg = Twist()
+        msg.linear.x = x
+        msg.linear.y = y
+        msg.angular.z = theta
+        return msg
+
+    def _publish_zero_vel(self):
+        # rospy.loginfo("Zero vel")
+        self._cmd_vel_pub.publish(self._get_twist())
+
+if __name__ == '__main__':
+    rospy.init_node('closed_loop_pick_base_controller')
+    CLPBC = ClosedLoopPickBaseController()
+
+    rospy.spin()
+    print("Exiting...")
+    CLPBC._publish_zero_vel()
