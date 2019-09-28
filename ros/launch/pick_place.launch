@@ -1,15 +1,27 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="pose_input" default="/pcl_closest_obj/output_pose"/>
-    
-    <!-- <include file="$(find kortex_driver)/launch/kortex_driver.launch"/> -->
 
-    <!-- <node pkg="timed_roslaunch" type="timed_roslaunch.sh" args="5 kinova_vision kinova_vision_rgbd.launch" name="timed_roslaunch" output="screen" /> -->
+    <arg name="pose_input" default="/pcl_closest_obj/output_pose"/>
+    <arg name="ip_address" default="192.168.1.10"/>
+    <arg name="__ns" default="/my_gen3"/>
+    
+    <include file="$(find kortex_driver)/launch/kortex_driver.launch"> 
+        <arg name="ip_address" value="$(arg ip_address)"/>
+    </include>
+
+    <!--node pkg="timed_roslaunch" type="timed_roslaunch.sh" args="5 kinova_arm_apps kinova_moveit_client.launch __ns:=$(arg __ns)" name="timed_roslaunch_kinova_moveit_client" output="screen" /--> 
+
+    <!--node pkg="timed_roslaunch" type="timed_roslaunch.sh" args="5 kinova_vision kinova_vision_rgbd.launch device:=$(arg ip_address)" name="timed_roslaunch_kinova_vision" output="screen" /--> 
 
     <node pkg="kinova_arm_apps" type="pick_and_place.py" name="pick_and_place" output="screen">
         <rosparam command="load" file="$(find kinova_arm_apps)/ros/config/joint_angles.yaml"/>
         <rosparam command="load" file="$(find kinova_arm_apps)/ros/config/boundary_safety.yaml"/>
         <remap from="~pose_in" to="$(arg pose_input)" />
     </node>
+
+    <!--include file="$(find kinova_arm_apps)/ros/launch/kinova_moveit_client.launch"> 
+        <arg name="__ns" value="$(arg __ns)"/>
+    </include-->
+
 </launch>
 
