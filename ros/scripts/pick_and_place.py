@@ -99,6 +99,7 @@ class PickAndPlace(object):
 
         """
         self.fam.example_clear_faults()
+        self.fam.start_action_topic()
         # self.fam.test_send_joint_angles(self.joint_angles["vertical_pose"])
         self.fam.test_send_joint_angles(self.joint_angles["perceive_pose"])
         self.fam.open_gripper()
