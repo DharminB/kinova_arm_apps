@@ -47,5 +47,29 @@ again. And, finally
 rostopic pub /pick_and_place/event_in geometry_msgs/String e_start
 ```
 
+## Using MoveIt! client
+Connect either with LAN cable or WLAN.
 
+*Note*: `kortex_driver.launch` or custom launch invoking `kortex_driver.launch` should initialise MoveIt! server. Please check `kortex_driver.launch`
+
+```
+<arg name="start_moveit" default="true"/>
+```
+
+Alternatively, you can pass `start_moveit` as an argument in custom launch file, in case you don't want to start moveit everytime.
+
+Next, start the `moveit_commander`: 
+```
+rosrun moveit_commander moveit_commander_cmdline.py __ns:=my_gen3
+> use arm (or gripper)
+> go home
+> go vertical
+```
+
+The robot's srdf can be found in `kortex_move_it_config` package on your local machine. The srdf to be updated is located in:
+```
+roscd kortex_move_it_config && cd ../gen3_robotiq_2f_85_move_it_config/config/
+```
+
+*Final note*: To use MoveIt! client, ensure that the `kortex_driver` has the correct argument set, then ensure the namespace of the robot is passed to your MoveIt! client script.
 
